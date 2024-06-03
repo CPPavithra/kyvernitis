@@ -134,6 +134,32 @@ def read_from_serial(port):
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
 
+def write_to_serial(port, data):
+    try:
+        # Open the serial port
+        ser = serial.Serial(port, 921600, timeout=5)
+        print(f"Opened serial port {port}")
+
+        encoded_msg = bytearray(data)
+        
+        # Prepare input and output buffers for encoding
+        input_buffer = (ctypes.c_uint8 * len(encoded_msg)).from_buffer_copy(encoded_msg)
+        output_buffer = (ctypes.c_uint8 * 178)()
+
+        # Call the cobs_encode function
+        cobs_lib.cobs_encode(output_buffer, 178, input_buffer,len(encoded_msg))
+
+        # Write the encoded data to the serial port
+        ser.write(bytes(output_buffer))
+        print(f"Wrote {len(output_buffer)} bytes to the serial port")  
+
+        # Close the serial port
+        ser.close()
+    except serial.SerialException as e:
+        print(f"Error opening or writing to serial port: {e}")
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+    
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
@@ -141,4 +167,46 @@ if __name__ == "__main__":
         sys.exit(1)
 
     serial_port = sys.argv[1]
+
+    libcrc = ctypes.CDLL("./crc.so.1.0.0")
+    libcrc.crc32_ieee.argtypes = [ctypes.POINTER(ctypes.c_uint8), ctypes.c_size_t]
+    libcrc.crc32_ieee.restype = ctypes.c_uint32
+    
+    
+    data = mother_msg()
+    data.type = 3
+
+    data.status.odom.x = 2.0
+    data.status.odom.y = 2.0
+    data.status.odom.heading = 2.0
+    data.status.odom.linear = 2.0
+    data.status.odom.angular = 2.0
+
+    data.status.arm_joint_status[0] = 2.0
+    data.status.arm_joint_status[1] = 2.0
+    data.status.arm_joint_status[2] = 2.0
+    data.status.timestamp = 0
+
+    data.cmd.drive_cmd.linear_x = 0.5
+    data.cmd.drive_cmd.angular_z = 0.0
+
+    data.cmd.arm_joint[0] = 0.0
+    data.cmd.arm_joint[1] = 0.0
+    data.cmd.arm_joint[2] = 0.0 
+
+    data.cmd.adaptive_sus_cmd[0] = 0
+    data.cmd.adaptive_sus_cmd[1] = 0
+    data.cmd.adaptive_sus_cmd[2] = 0
+    data.cmd.adaptive_sus_cmd[3] = 0
+
+    data_bytes = bytes(data)
+    data_array = (ctypes.c_uint8 * len(data_bytes)).from_buffer_copy(data_bytes)
+    crc = libcrc.crc32_ieee(data_array, len(data_bytes) - ctypes.sizeof(ctypes.c_uint32))
+    data.crc = crc
+    
+    #data.info = "Sending drive command"
+
+    write_to_serial(serial_port, data)
     read_from_serial(serial_port)
+
+
