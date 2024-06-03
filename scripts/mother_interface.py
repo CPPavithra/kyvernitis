@@ -160,6 +160,15 @@ def write_to_serial(port, data):
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
     
+def calculate_crc(data):
+    libcrc = ctypes.CDLL("./crc.so.1.0.0")
+    libcrc.crc32_ieee.argtypes = [ctypes.POINTER(ctypes.c_uint8), ctypes.c_size_t]
+    libcrc.crc32_ieee.restype = ctypes.c_uint32
+    data_bytes = bytes(data)
+    data_array = (ctypes.c_uint8 * len(data_bytes)).from_buffer_copy(data_bytes)
+    crc = libcrc.crc32_ieee(data_array, len(data_bytes) - ctypes.sizeof(ctypes.c_uint32))
+    return crc
+
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
@@ -168,10 +177,6 @@ if __name__ == "__main__":
 
     serial_port = sys.argv[1]
 
-    libcrc = ctypes.CDLL("./crc.so.1.0.0")
-    libcrc.crc32_ieee.argtypes = [ctypes.POINTER(ctypes.c_uint8), ctypes.c_size_t]
-    libcrc.crc32_ieee.restype = ctypes.c_uint32
-    
     
     data = mother_msg()
     data.type = 3
@@ -199,10 +204,7 @@ if __name__ == "__main__":
     data.cmd.adaptive_sus_cmd[2] = 0
     data.cmd.adaptive_sus_cmd[3] = 0
 
-    data_bytes = bytes(data)
-    data_array = (ctypes.c_uint8 * len(data_bytes)).from_buffer_copy(data_bytes)
-    crc = libcrc.crc32_ieee(data_array, len(data_bytes) - ctypes.sizeof(ctypes.c_uint32))
-    data.crc = crc
+    data.crc = calculate_crc(data)
     
     #data.info = "Sending drive command"
 
