@@ -61,6 +61,8 @@ class CobsDecodeResult(ctypes.Structure):
 # Load the shared library
 lib_path = os.path.join(os.path.dirname(__file__), "libcobs.so.2.0.0")
 cobs_lib = ctypes.CDLL(lib_path)
+crc_path  = os.path.join(os.path.dirname(__file__), "crc.so.1.0.0")
+libcrc = ctypes.CDLL(crc_path)
 
 # Prototype for cobs_encode
 cobs_lib.cobs_encode.argtypes = [
@@ -161,7 +163,6 @@ def write_to_serial(port, data):
         print(f"An unexpected error occurred: {e}")
     
 def calculate_crc(data):
-    libcrc = ctypes.CDLL("./crc.so.1.0.0")
     libcrc.crc32_ieee.argtypes = [ctypes.POINTER(ctypes.c_uint8), ctypes.c_size_t]
     libcrc.crc32_ieee.restype = ctypes.c_uint32
     data_bytes = bytes(data)
@@ -208,7 +209,5 @@ if __name__ == "__main__":
     
     #data.info = "Sending drive command"
 
-    write_to_serial(serial_port, data)
+    # write_to_serial(serial_port, data)
     read_from_serial(serial_port)
-
-
