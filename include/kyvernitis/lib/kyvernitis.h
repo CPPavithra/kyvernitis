@@ -9,6 +9,7 @@
 #include <zephyr/drivers/gpio.h>
 
 #include <kyvernitis/lib/drive.h>
+#include <kyvernitis/lib/joint_control.h>
 
 #define MAX_ROBOCLAWS   2
 #define MAX_SABERTOOTHS 2

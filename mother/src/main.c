@@ -35,6 +35,9 @@ struct pwm_motor motor[11] = {DT_FOREACH_CHILD(DT_PATH(pwmmotors), PWM_MOTOR_SET
 const struct device *const encoder_fr = DEVICE_DT_GET(DT_ALIAS(en_fr));
 const struct device *const encoder_fl = DEVICE_DT_GET(DT_ALIAS(en_fl));
 
+/* DT spec for imus */
+const struct device *const lj_imu = DEVICE_DT_GET(DT_ALIAS(imu_lower_joint)); 
+const struct device *const uj_imu = DEVICE_DT_GET(DT_ALIAS(imu_upper_joint)); 
 /* DT spec for LED */
 static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(DT_ALIAS(led0), gpios);
 
@@ -205,7 +208,25 @@ int main()
 {
 	log_uart(T_MOTHER_INFO, "Mother: v%s", APP_VERSION_STRING);
 
-	int err;
+	int err;	
+
+	struct DiffDriveConfig drive_config = {
+		.wheel_separation = 0.57f,
+		.wheel_separation_multiplier = 1,
+		.wheel_radius = 0.15f,
+		.wheels_per_side = 2,
+		.command_timeout_seconds = 2,
+		.left_wheel_radius_multiplier = 1,
+		.right_wheel_radius_multiplier = 1,
+		.update_type = POSITION_FEEDBACK,
+	};
+
+	struct arm_joint_status upper_joint, lower_joint;
+
+	uint64_t time_last_drive_update = 0;
+	uint64_t drive_timestamp = 0;
+	uint64_t curr_status_stamp = 0;	
+
 
 	/* Device ready checks */
 
@@ -226,11 +247,19 @@ int main()
 		log_uart(T_MOTHER_ERROR, "Encoder Front Right not ready");
 	}
 
+	if (!device_is_ready(lj_imu)) {
+		log_uart(T_MOTHER_ERROR, "IMU Lower Joint not ready");
+	}
+
+	if (!device_is_ready(uj_imu)) {
+		log_uart(T_MOTHER_ERROR, "IMU Upper Joint not ready");
+	}
+
 	if (!gpio_is_ready_dt(&led)) {
 		log_uart(T_MOTHER_ERROR, "Led not ready");
 	}
 
-	/* Configure devices */
+	/* Calibrate and Configure devices */
 
 	err = uart_irq_callback_user_data_set(uart_dev, serial_cb, NULL);
 
@@ -246,46 +275,55 @@ int main()
 	}
 	uart_irq_rx_enable(uart_dev);
 
+	err = calibrate_imu(lj_imu, &lower_joint);
+	if (err < 0) {
+		log_uart(T_MOTHER_ERROR, "Lower Joint IMU calibration failed");
+	}
+	
+	err = calibrate_imu(uj_imu, &upper_joint);
+	if(err < 0) {
+		log_uart(T_MOTHER_ERROR, "Upper Joint IMU calibration failed");
+	}
+
 	if (gpio_pin_configure_dt(&led, GPIO_OUTPUT_ACTIVE) < 0) {
 		log_uart(T_MOTHER_ERROR, "Led not configured");
 	}
-
-	struct DiffDriveConfig drive_config = {
-		.wheel_separation = 0.57f,
-		.wheel_separation_multiplier = 1,
-		.wheel_radius = 0.15f,
-		.wheels_per_side = 2,
-		.command_timeout_seconds = 2,
-		.left_wheel_radius_multiplier = 1,
-		.right_wheel_radius_multiplier = 1,
-		.update_type = POSITION_FEEDBACK,
-	};
-
+	
 	struct DiffDrive *drive =
 		diffdrive_init(&drive_config, feedback_callback, velocity_callback);
-
-	int64_t time_last_drive_update = 0;
-	int64_t drive_timestamp = 0;
 
 	log_uart(T_MOTHER_INFO, "Initialization completed successfully");
 
 	while (true) {
-		/* Send status */
-		struct DiffDriveStatus ds = diffdrive_status(drive);
-		struct mother_status_msg s_msg = {.odom = ds,
-						  .arm_joint_status = {0.0f, 0.0f, 0.0f},
-						  .timestamp = k_uptime_get()};
-		struct mother_msg status_msg = {.type = T_MOTHER_STATUS, .status = s_msg};
-		uint32_t crc = crc32_ieee((uint8_t *)&status_msg,
-					  sizeof(struct mother_msg) - sizeof(uint32_t));
-		status_msg.crc = crc;
 
-		serialize(tx_buf, (uint8_t *)&status_msg, sizeof(struct mother_msg));
-		send_to_uart(tx_buf, UART_MSG_SIZE);
+		err = process_imu(lj_imu, &lower_joint);
+		err += process_imu(uj_imu, &upper_joint);
 
-		if (k_msgq_get(&uart_msgq, &msg, K_SECONDS(2))) {
+
+		/* Send status every 1 ms*/
+		if (k_uptime_get() - curr_status_stamp > 1000) {
+			struct DiffDriveStatus ds = diffdrive_status(drive);
+			struct mother_status_msg s_msg = {.odom = ds,
+							  .arm_joint_status = {lower_joint.pitch, upper_joint.pitch, 0.0f},
+							  .timestamp = k_uptime_get()};
+			struct mother_msg status_msg = {.type = T_MOTHER_STATUS, .status = s_msg};
+			uint32_t crc = crc32_ieee((uint8_t *)&status_msg,
+						  sizeof(struct mother_msg) - sizeof(uint32_t));
+			status_msg.crc = crc;
+
+			serialize(tx_buf, (uint8_t *)&status_msg, sizeof(struct mother_msg));
+			send_to_uart(tx_buf, UART_MSG_SIZE);
+			
+			if(err < 0) {
+				log_uart(T_MOTHER_ERROR, "Sample fetch/get failed in IMU");
+			}
+
+			curr_status_stamp = k_uptime_get();
+		}
+
+		if (k_msgq_get(&uart_msgq, &msg, K_MSEC(4))) {
 			/* Send stop to all */
-			log_uart(T_MOTHER_INFO, "Message Timeout");
+			// log_uart(T_MOTHER_INFO, "Message Timeout");
 			drive_timestamp = k_uptime_get();
 			err = diffdrive_update(drive, TIMEOUT_CMD, drive_timestamp);
 			time_last_drive_update = k_uptime_get() - drive_timestamp;
