@@ -51,7 +51,7 @@ float vel_range[] = {-3, 3};
 uint32_t pwm_range[] = {1100000, 1900000};
 
 /* Serial Callback global variables */
-static uint8_t rx_buf[100];
+static uint8_t rx_buf[UART_MSG_SIZE];
 static int rx_buf_pos;
 static uint8_t tx_buf[UART_MSG_SIZE];
 
