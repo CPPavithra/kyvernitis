@@ -1,7 +1,10 @@
 #include <zephyr/kernel.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/sensor.h>
+#include <math.h>
 #include <stdio.h>
+
+#define M_PI 3.14159265358979323846
 
 static const char *now_str(void)
 {
@@ -24,9 +27,23 @@ static const char *now_str(void)
 	return buf;
 }
 
-static int process_mpu6050(const struct device *dev)
+
+uint64_t prev_time = 0;
+struct joint {
+	float accel[3];
+	float gyro[3];
+	float pitch;
+};
+
+float pitch_gyro = 0;
+float gyroOffset = 0;
+float alpha = 0.96;
+static int process_mpu6050(const struct device *dev, struct joint *joint)
 {
-	struct sensor_value temperature;
+	uint64_t current_time = k_uptime_get();
+	float dt = (current_time - prev_time)/ 1000.0;
+	prev_time = current_time;
+
 	struct sensor_value accel[3];
 	struct sensor_value gyro[3];
 	int rc = sensor_sample_fetch(dev);
@@ -39,28 +56,30 @@ static int process_mpu6050(const struct device *dev)
 		rc = sensor_channel_get(dev, SENSOR_CHAN_GYRO_XYZ,
 					gyro);
 	}
+	
+	for(int i = 0; i < 3; i++) {
+		joint->accel[i] = sensor_value_to_double(&accel[i]);
+		joint->gyro[i] = sensor_value_to_double(&gyro[i]);
+	};	
+
+	float pitch_accel = (180 * atan2(-1*joint->accel[0], sqrt(pow(joint->accel[1],2) + pow(joint->accel[2],2)))/M_PI);
+
+	joint->pitch = alpha * (joint->pitch + (joint->gyro[1] - gyroOffset)*dt) + (1 - alpha) * pitch_accel;
+
 	if (rc == 0) {
-		rc = sensor_channel_get(dev, SENSOR_CHAN_DIE_TEMP,
-					&temperature);
-	}
-	if (rc == 0) {
-		printf("[%s]:%g Cel\n"
-		       "  accel %f %f %f m/s/s\n"
-		       "  gyro  %f %f %f rad/s\n",
-		       now_str(),
-		       sensor_value_to_double(&temperature),
-		       sensor_value_to_double(&accel[0]),
-		       sensor_value_to_double(&accel[1]),
-		       sensor_value_to_double(&accel[2]),
-		       sensor_value_to_double(&gyro[0]),
-		       sensor_value_to_double(&gyro[1]),
-		       sensor_value_to_double(&gyro[2]));
 		// printf("[%s]: "
-		//        "  accel %f %f %f m/s/s\n",
+		//        "  accel %f %f %f m/s/s\n"
+		//        "  gyro  %f %f %f rad/s\n"
+		//        "  pitch %f degrees\n",
 		//        now_str(),
 		//        sensor_value_to_double(&accel[0]),
 		//        sensor_value_to_double(&accel[1]),
-		//        sensor_value_to_double(&accel[2]));
+		//        sensor_value_to_double(&accel[2]),
+		//        sensor_value_to_double(&gyro[0]),
+		//        sensor_value_to_double(&gyro[1]),
+		//        sensor_value_to_double(&gyro[2]),
+		//        joint.pitch);
+		printf("[%s]: %f\n", now_str(), joint->pitch );
 
 	} else {
 		printf("sample fetch/get failed: %d\n", rc);
@@ -68,6 +87,7 @@ static int process_mpu6050(const struct device *dev)
 
 	return rc;
 }
+
 
 int main(void)
 {
@@ -77,14 +97,29 @@ int main(void)
 		printf("Device %s is not ready\n", mpu6050->name);
 		return 0;
 	}
+	struct sensor_value gyro[3];
 
+	for (int i = 0; i < 1000; i++) {
+		int rc = sensor_sample_fetch(mpu6050);
+
+		rc = sensor_channel_get(mpu6050, SENSOR_CHAN_GYRO_XYZ,
+					gyro);
+
+		gyroOffset += sensor_value_to_double(&gyro[1]);
+		k_sleep(K_MSEC(10));
+	}
+
+	gyroOffset /= 1000;
+
+	struct joint joint;
+	joint.pitch = 0;
 	while (1) {
-		int rc = process_mpu6050(mpu6050);
+		int rc = process_mpu6050(mpu6050, &joint);
 
 		if (rc != 0) {
 			break;
 		}
-		k_sleep(K_MSEC(10));
+		k_sleep(K_MSEC(4));
 	}
 
 	/* triggered runs with its own thread after exit */
