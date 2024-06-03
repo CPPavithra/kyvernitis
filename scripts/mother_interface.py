@@ -87,7 +87,6 @@ def read_from_serial(port):
         print(f"Opened serial port {port}")
         
         while True:
-
             # Read 66 bytes from the serial port
             data = ser.read(178)
 
@@ -101,6 +100,7 @@ def read_from_serial(port):
                 result = cobs_lib.cobs_decode(
                     output_buffer, 178, input_buffer, len(data) - 1
                 )
+
 
                 if result.status.value == CobsDecodeStatus.COBS_DECODE_OK:
                     decoded_data = bytes(output_buffer[: result.out_len])
