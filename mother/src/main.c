@@ -52,6 +52,7 @@ struct DiffDriveTwist TIMEOUT_CMD = {
 /* Velocity and PWM ranges */
 float vel_range[] = {-3, 3};
 uint32_t pwm_range[] = {1100000, 1900000};
+float angle_range[] = {-360, 360};
 
 /* Serial Callback global variables */
 static uint8_t rx_buf[UART_MSG_SIZE];
@@ -220,7 +221,24 @@ int main()
 		.update_type = POSITION_FEEDBACK,
 	};
 
-	struct arm_joint_status upper_joint, lower_joint;
+	struct ArmJointStatus upper_joint = {
+		.desired_angle = 4,
+		.pid.Kp = 1.5,
+		.pid.Ki = 0.15,
+		.pid.Kd = 0.4,
+		.pid.previous_error = 0,
+		.pid.derivative = 0,
+		.pid.integral = 0
+	};
+	struct ArmJointStatus lower_joint = {
+		.desired_angle = 4,
+		.pid.Kp = 1.5,
+		.pid.Ki = 0.15,
+		.pid.Kd = 0.4,
+		.pid.previous_error = 0,
+		.pid.derivative = 0,
+		.pid.integral = 0
+	};
 
 	uint64_t time_last_drive_update = 0;
 	uint64_t drive_timestamp = 0;
@@ -295,15 +313,20 @@ int main()
 
 	while (true) {
 
-		err = process_imu(lj_imu, &lower_joint);
-		err += process_imu(uj_imu, &upper_joint);
-
-
+		err = update_pid(lj_imu, &lower_joint);		
+		if (err < 0) {
+			pwm_motor_write(&(motor[6]), pid_pwm_interp(lower_joint.pid.pid_change, angle_range, pwm_range));
+		}
+		
+		err += update_pid(uj_imu, &upper_joint);
+		if (err < 0) {
+			pwm_motor_write(&(motor[7]), pid_pwm_interp(upper_joint.pid.pid_change, angle_range, pwm_range));
+		}
 		/* Send status every 1 ms*/
 		if (k_uptime_get() - curr_status_stamp > 1000) {
 			struct DiffDriveStatus ds = diffdrive_status(drive);
 			struct mother_status_msg s_msg = {.odom = ds,
-							  .arm_joint_status = {lower_joint.pitch, upper_joint.pitch, 0.0f},
+							  .arm_joint_status = {lower_joint.pitch, lower_joint.pid.pid_change, 0.0f},
 							  .timestamp = k_uptime_get()};
 			struct mother_msg status_msg = {.type = T_MOTHER_STATUS, .status = s_msg};
 			uint32_t crc = crc32_ieee((uint8_t *)&status_msg,
@@ -330,6 +353,14 @@ int main()
 			if (err) {
 				log_uart(T_MOTHER_ERROR, "Diffdrive Update Failue");
 			}
+
+			for (size_t i = 2; i < 6; i++) {
+				pwm_motor_write(&(motor[i]), PWM_MOTOR_STOP);
+			}
+			for (size_t i = 8; i < ARRAY_SIZE(motor); i++) {
+				pwm_motor_write(&(motor[i]), PWM_MOTOR_STOP);
+			}
+
 			continue;
 		}
 
@@ -347,7 +378,13 @@ int main()
 			if (err) {
 				log_uart(T_MOTHER_ERROR, "Diffdrive Update Failue");
 			}
+			break;
+		case T_MOTHER_CMD_ARM:
+			upper_joint.desired_angle = msg.cmd.arm_joint[0];
+			lower_joint.desired_angle = msg.cmd.arm_joint[1];
+			break;
 		}
+
 		gpio_pin_toggle_dt(&led);
 	}
 }
