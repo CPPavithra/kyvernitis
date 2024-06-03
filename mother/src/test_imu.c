@@ -97,7 +97,7 @@ int main(void)
 		printf("Device %s is not ready\n", mpu6050->name);
 		return 0;
 	}
-	struct sensor_value gyro[3];
+	struct sensor_value gyro[3], accel[3];
 
 	for (int i = 0; i < 1000; i++) {
 		int rc = sensor_sample_fetch(mpu6050);
@@ -111,8 +111,15 @@ int main(void)
 
 	gyroOffset /= 1000;
 
-	struct joint joint;
-	joint.pitch = 0;
+	int rc = sensor_sample_fetch(mpu6050);
+	rc = sensor_channel_get(mpu6050, SENSOR_CHAN_ACCEL_XYZ, accel);
+	struct joint joint = {
+		.accel[0] = sensor_value_to_double(&accel[0]),
+		.accel[1] = sensor_value_to_double(&accel[1]),
+		.accel[2] = sensor_value_to_double(&accel[2])
+	};
+	joint.pitch = (180 * atan2(-1*joint.accel[0], sqrt(pow(joint.accel[1],2) + pow(joint.accel[2],2)))/M_PI);
+;
 	while (1) {
 		int rc = process_mpu6050(mpu6050, &joint);
 
