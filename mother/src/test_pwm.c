@@ -14,7 +14,7 @@
 	{.dev_spec = PWM_DT_SPEC_GET(pwm_dev_id),                                                  \
 	 .min_pulse = DT_PROP(pwm_dev_id, min_pulse),                                              \
 	 .max_pulse = DT_PROP(pwm_dev_id, max_pulse)},
-struct pwm_motor roboclaw[20] = {DT_FOREACH_CHILD(DT_PATH(pwmmotors), PWM_MOTOR_SETUP)};
+struct pwm_motor roboclaw[11] = {DT_FOREACH_CHILD(DT_PATH(pwmmotors), PWM_MOTOR_SETUP)};
 
 static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(DT_ALIAS(led0), gpios);
 
@@ -33,6 +33,12 @@ int main()
 		}
 	}
 
+	for(size_t i = 0U; i < ARRAY_SIZE(roboclaw); i++) {
+		if(pwm_motor_write(&(roboclaw[i]),1500000)) {
+			printk("Unable to write pwm pulse to PWM Motor : %d", i);
+		}
+	}
+
 	if (gpio_pin_configure_dt(&led, GPIO_OUTPUT_ACTIVE) < 0)
 	{
 		printk("Error: Led not configured\n");
@@ -40,15 +46,29 @@ int main()
 	}
 
 	printk("Successfully initialized\n");
-
-	for(size_t i = 0U; i < ARRAY_SIZE(roboclaw); i++) {
-		for(uint32_t pulse = 1120000; pulse < 1920000; pulse += 100000)
-		{
-			if(pwm_motor_write(&roboclaw[i], pulse)) {
-				printk("Unable to write pwm pulse to PWM Motor : %d", i);
-				return 0;
+	
+	while (1) {
+		for(size_t i = 0U; i < ARRAY_SIZE(roboclaw); i++) {
+			for(uint32_t pulse = 1100000; pulse < 1900000; pulse += 100000)
+			{
+				if(pwm_motor_write(&roboclaw[i], pulse)) {
+					printk("Unable to write pwm pulse to PWM Motor : %d", i);
+					return 0;
+				}
+				k_sleep(K_MSEC(1000));
 			}
+			for(uint32_t pulse = 1900000; pulse > 1100000; pulse -= 100000)
+			{
+				if(pwm_motor_write(&roboclaw[i], pulse)) {
+					printk("Unable to write pwm pulse to PWM Motor : %d", i);
+					return 0;
+				}
+				k_sleep(K_MSEC(1000));
+			}
+			// if(pwm_motor_write(&roboclaw[i], 1100000)) {
+			// 		printk("Unable to write pwm pulse to PWM Motor : %d", i);
+			// 		return 0;
+			// }
 		}
 	}
-
 }
