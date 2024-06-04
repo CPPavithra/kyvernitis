@@ -17,7 +17,7 @@ int arm_joint_status_init(const struct device *dev, struct ArmJointStatus *joint
 	for (int i = 0; i < 3; i++) {
 		faccel[i] = sensor_value_to_double(&accel[i]);
 	}
-	joint->pitch =
+	joint->angle =
 		(180 * atan2(-1 * faccel[0], sqrt(pow(faccel[1], 2) + pow(faccel[2], 2))) / M_PI);
 	joint->prev_time = 0;
 
@@ -55,8 +55,8 @@ int process_imu(const struct device *dev, struct ArmJointStatus *joint)
 								      pow(joint->accel[2], 2))) /
 				     M_PI);
 
-		joint->pitch =
-			tau * (joint->pitch + (joint->gyro[1] - joint->gyroOffset) * (joint->dt)) +
+		joint->angle =
+			tau * (joint->angle + (joint->gyro[1] - joint->gyroOffset) * (joint->dt)) +
 			(1 - tau) * pitch_accel;
 	}
 
@@ -88,7 +88,7 @@ int calibrate_imu(const struct device *dev, struct ArmJointStatus *joint)
 		joint->gyroOffset /= 1000;
 		rc = arm_joint_status_init(dev, joint);
 		if (rc < 0) {
-			joint->pitch = 0;
+			joint->angle = 0;
 		}
 	}
 	return rc;
@@ -104,7 +104,7 @@ int update_pid(const struct device *dev, struct ArmJointStatus *joint)
 	ret = process_imu(dev, joint);
 	struct PID *pid = &(joint->pid);
 
-	float error = joint->desired_angle - joint->pitch;
+	float error = joint->desired_angle - joint->angle;
 	if (error > 90) {
 		return -1;
 	}

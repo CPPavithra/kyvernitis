@@ -12,7 +12,7 @@ struct PID {
 struct ArmJointStatus {
 	float accel[3];
 	float gyro[3];
-	float gyroOffset, pitch, desired_angle, dt;
+	float gyroOffset, angle, desired_angle, dt;
 	struct PID pid;
 	uint64_t prev_time;
 };
