@@ -358,16 +358,19 @@ int main()
 
 			curr_status_stamp = k_uptime_get();
 		}
-
+#ifdef CONFIG_TEST_MODE
 		if (k_msgq_get(&uart_msgq, &msg, K_MSEC(4))) {
+#else 			
+		if (k_msgq_get(&uart_msgq, &msg, K_SECONDS(1))) {
+#endif 
 			/* Send stop to all */
-			// log_uart(T_MOTHER_INFO, "Message Timeout");
+			log_uart(T_MOTHER_INFO, "Message Timeout");
 			drive_timestamp = k_uptime_get();
 			err = diffdrive_update(drive, TIMEOUT_CMD, drive_timestamp);
 			time_last_drive_update = k_uptime_get() - drive_timestamp;
 
 			if (err) {
-				log_uart(T_MOTHER_ERROR, "Diffdrive Update Failue");
+				log_uart(T_MOTHER_ERROR, "Diffdrive Update Failure");
 			}
 
 			for (size_t i = 2; i < 6; i++) {
