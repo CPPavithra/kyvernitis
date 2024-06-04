@@ -194,7 +194,7 @@ int velocity_callback(const float *velocity_buffer, int buffer_len, int wheels_p
 		return 1;
 	}
 	if (pwm_motor_write(
-		    &(motor[i + wheels_per_side]),
+		    &(motor[i + 1]),
 		    velocity_pwm_interpolation(*(velocity_buffer + wheels_per_side + i),
 					       vel_range, pwm_range))) {
 		log_uart(T_MOTHER_ERROR, "Drive: Unable to write pwm pulse to Right : %d",
