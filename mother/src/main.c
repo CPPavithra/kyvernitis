@@ -52,7 +52,8 @@ struct DiffDriveTwist TIMEOUT_CMD = {
 /* Velocity and PWM ranges */
 float vel_range[] = {-3, 3};
 uint32_t pwm_range[] = {1100000, 1900000};
-float angle_range[] = {-360, 360};
+uint32_t pid_pwm_range[] = {1300000, 1700000};
+float angle_range[] = {-270, 270};
 
 /* Serial Callback global variables */
 static uint8_t rx_buf[UART_MSG_SIZE];
@@ -222,17 +223,17 @@ int main()
 	};
 
 	struct ArmJointStatus upper_joint = {
-		.desired_angle = 4,
-		.pid.Kp = 1.5,
-		.pid.Ki = 0.15,
-		.pid.Kd = 0.4,
+		.desired_angle = -45,
+		.pid.Kp = 2.5,
+		.pid.Ki = 0.25,
+		.pid.Kd = 2,
 		.pid.previous_error = 0,
 		.pid.derivative = 0,
 		.pid.integral = 0
 	};
 	struct ArmJointStatus lower_joint = {
-		.desired_angle = 4,
-		.pid.Kp = 1.5,
+		.desired_angle = 40,
+		.pid.Kp = 1.8,
 		.pid.Ki = 0.15,
 		.pid.Kd = 0.4,
 		.pid.previous_error = 0,
@@ -292,6 +293,12 @@ int main()
 	}
 	uart_irq_rx_enable(uart_dev);
 
+	for(size_t i = 0U; i < ARRAY_SIZE(motor); i++) {
+		if(pwm_motor_write(&(motor[i]),1500000)) {
+			printk("Unable to write pwm pulse to PWM Motor : %d", i);
+		}
+	}
+
 	err = calibrate_imu(lj_imu, &lower_joint);
 	if (err < 0) {
 		log_uart(T_MOTHER_ERROR, "Lower Joint IMU calibration failed");
@@ -314,19 +321,28 @@ int main()
 	while (true) {
 
 		err = update_pid(lj_imu, &lower_joint);		
-		if (err < 0) {
-			pwm_motor_write(&(motor[6]), pid_pwm_interp(lower_joint.pid.pid_change, angle_range, pwm_range));
+		if ( (lower_joint.angle < 9 && lower_joint.pid.pid_change < 0) || (lower_joint.angle> 45 && lower_joint.pid.pid_change > 0)) {
+			pwm_motor_write(&(motor[6]),PWM_MOTOR_STOP);
+		}
+		else if (err == 0) {
+			pwm_motor_write(&(motor[6]), pid_pwm_interp(lower_joint.pid.pid_change, angle_range, pid_pwm_range));
 		}
 		
+		
 		err += update_pid(uj_imu, &upper_joint);
-		if (err < 0) {
-			pwm_motor_write(&(motor[7]), pid_pwm_interp(upper_joint.pid.pid_change, angle_range, pwm_range));
+		float transform_upper_lower = 180 - lower_joint.angle + upper_joint.angle;
+		if ((transform_upper_lower< 85 && upper_joint.pid.pid_change < 0) || (transform_upper_lower > 105 && upper_joint.pid.pid_change > 0)) {
+			pwm_motor_write(&(motor[7]),PWM_MOTOR_STOP);
+		}
+		else if (err == 0) {
+			pwm_motor_write(&(motor[7]), pid_pwm_interp(upper_joint.pid.pid_change, angle_range, pid_pwm_range));
+			// log_uart(T_MOTHER_INFO, "PWM [%u] to motor 7", pid_pwm_interp(upper_joint.pid.pid_change, angle_range, pid_pwm_range));
 		}
 		/* Send status every 1 ms*/
 		if (k_uptime_get() - curr_status_stamp > 1000) {
 			struct DiffDriveStatus ds = diffdrive_status(drive);
 			struct mother_status_msg s_msg = {.odom = ds,
-							  .arm_joint_status = {lower_joint.pitch, lower_joint.pid.pid_change, 0.0f},
+							  .arm_joint_status = { 0.0f, lower_joint.angle, upper_joint.angle},
 							  .timestamp = k_uptime_get()};
 			struct mother_msg status_msg = {.type = T_MOTHER_STATUS, .status = s_msg};
 			uint32_t crc = crc32_ieee((uint8_t *)&status_msg,
@@ -380,8 +396,9 @@ int main()
 			}
 			break;
 		case T_MOTHER_CMD_ARM:
-			upper_joint.desired_angle = msg.cmd.arm_joint[0];
 			lower_joint.desired_angle = msg.cmd.arm_joint[1];
+			upper_joint.desired_angle = msg.cmd.arm_joint[2];
+
 			break;
 		}
 
