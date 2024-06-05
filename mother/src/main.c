@@ -212,7 +212,7 @@ int main()
 	int err;	
 
 	struct DiffDriveConfig drive_config = {
-		.wheel_separation = 0.57f,
+		.wheel_separation = 0.77f,
 		.wheel_separation_multiplier = 1,
 		.wheel_radius = 0.15f,
 		.wheels_per_side = 2,
