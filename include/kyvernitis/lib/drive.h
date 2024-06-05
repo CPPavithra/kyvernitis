@@ -4,7 +4,6 @@
 #include <zephyr/drivers/can.h>
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
-#include <app_version.h>
 #include <stdint.h>
 
 struct DiffDriveStatus {
