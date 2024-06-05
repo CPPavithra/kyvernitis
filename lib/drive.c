@@ -195,7 +195,7 @@ void diffdrive_odometry_integrate_runge_kutta2(struct DiffDriveOdometry *odom, f
 	/// Runge-Kutta 2nd order integration:
 	odom->x += linear * cos(direction);
 	odom->y += linear * sin(direction);
-	odom->heading += angular * 0.5f;
+	odom->heading += angular;
 }
 
 void diffdrive_odometry_integrate_exact(struct DiffDriveOdometry *odom, float linear, float angular)
@@ -206,7 +206,7 @@ void diffdrive_odometry_integrate_exact(struct DiffDriveOdometry *odom, float li
 		/// Exact integration (should solve problems when angular is zero):
 		const double heading_old = odom->heading;
 		const double r = linear / angular;
-		odom->heading += angular * 0.5f;
+		odom->heading += angular;
 		odom->x += r * (sin(odom->heading) - sin(heading_old));
 		odom->y += -r * (cos(odom->heading) - cos(heading_old));
 	}
