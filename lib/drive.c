@@ -106,7 +106,7 @@ int diffdrive_update(struct DiffDrive *drive, struct DiffDriveTwist command,
 
 		if (isnan(left_feedback) || isnan(right_feedback)) {
 			// ERROR: One of the wheels gives invalid feedback
-			ret = 1;
+			ret = 2;
 		}
 
 		left_feedback_mean += left_feedback;
@@ -141,7 +141,7 @@ int diffdrive_update(struct DiffDrive *drive, struct DiffDriveTwist command,
 	if (drive->velocity_callback(velocity_buffer, feedback_buffer_size,
 				     drive->config.wheels_per_side)) {
 		// ERROR: Something went wrong writing the velocities
-		ret = 1;
+		ret = 3;
 	}
 	free(velocity_buffer);
 	return ret;
@@ -195,7 +195,7 @@ void diffdrive_odometry_integrate_runge_kutta2(struct DiffDriveOdometry *odom, f
 	/// Runge-Kutta 2nd order integration:
 	odom->x += linear * cos(direction);
 	odom->y += linear * sin(direction);
-	odom->heading += angular;
+	odom->heading += angular * 0.5f;
 }
 
 void diffdrive_odometry_integrate_exact(struct DiffDriveOdometry *odom, float linear, float angular)
@@ -206,7 +206,7 @@ void diffdrive_odometry_integrate_exact(struct DiffDriveOdometry *odom, float li
 		/// Exact integration (should solve problems when angular is zero):
 		const double heading_old = odom->heading;
 		const double r = linear / angular;
-		odom->heading += angular;
+		odom->heading += angular * 0.5f;
 		odom->x += r * (sin(odom->heading) - sin(heading_old));
 		odom->y += -r * (cos(odom->heading) - cos(heading_old));
 	}
