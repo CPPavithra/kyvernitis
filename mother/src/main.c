@@ -50,8 +50,8 @@ struct DiffDriveTwist TIMEOUT_CMD = {
 };
 
 /* Velocity and PWM ranges */
-float vel_range[] = {-3, 3};
-uint32_t pwm_range[] = {1100000, 1900000};
+float vel_range[] = {-10, 10};
+uint32_t pwm_range[] = {1120000, 1880000};
 uint32_t pid_pwm_range[] = {1300000, 1700000};
 float angle_range[] = {-270, 270};
 
@@ -361,7 +361,7 @@ int main()
 #ifdef CONFIG_TEST_MODE
 		if (k_msgq_get(&uart_msgq, &msg, K_MSEC(4))) {
 #else 			
-		if (k_msgq_get(&uart_msgq, &msg, K_SECONDS(1))) {
+		if (k_msgq_get(&uart_msgq, &msg, K_SECONDS(2))) {
 #endif 
 			/* Send stop to all */
 			log_uart(T_MOTHER_INFO, "Message Timeout");
@@ -391,7 +391,7 @@ int main()
 		switch (msg.type) {
 		case T_MOTHER_CMD_DRIVE:
 			drive_timestamp = k_uptime_get();
-			diffdrive_update(drive, msg.cmd.drive_cmd, time_last_drive_update);
+			err = diffdrive_update(drive, msg.cmd.drive_cmd, time_last_drive_update);
 			time_last_drive_update = k_uptime_get() - drive_timestamp;
 
 			if (err) {
