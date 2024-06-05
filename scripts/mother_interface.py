@@ -107,7 +107,7 @@ def read_from_serial(ser):
                                 decoded_msg.contents.status.timestamp,
                                 decoded_msg.contents.status.odom.x,
                                 decoded_msg.contents.status.odom.y,
-                                decoded_msg.contents.status.odom.heading,
+                                decoded_msg.contents.status.odom.heading * 180/3.1415,
                                 decoded_msg.contents.status.arm_joint_status[0],
                                 decoded_msg.contents.status.arm_joint_status[1], 
                                 decoded_msg.contents.status.arm_joint_status[2] 
@@ -168,8 +168,8 @@ if __name__ == "__main__":
     # data.status.arm_joint_status[2] = 2.0
     # data.status.timestamp = 0
 
-    data.cmd.drive_cmd.linear_x = 1.5
-    data.cmd.drive_cmd.angular_z = 0.0
+    data.cmd.drive_cmd.linear_x = 0.0
+    data.cmd.drive_cmd.angular_z = 1.0
 
     data.cmd.arm_joint[0] = 0.0
     data.cmd.arm_joint[1] = 0.0
@@ -184,7 +184,7 @@ if __name__ == "__main__":
     
     #data.info = "Sending drive command"
     try:
-        ser = serial.Serial(port, 921600, timeout=5)
+        ser = serial.Serial(port, 115200, timeout=5)
         print(f"Opened serial port {port}")
        
         while True:
