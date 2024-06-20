@@ -244,6 +244,7 @@ int main()
 	uint64_t time_last_drive_update = 0;
 	uint64_t drive_timestamp = 0;
 	uint64_t curr_status_stamp = 0;	
+	uint64_t curr_cmd_stamp = 0; 
 
 
 	/* Device ready checks */
@@ -361,28 +362,30 @@ int main()
 #ifdef CONFIG_TEST_MODE
 		if (k_msgq_get(&uart_msgq, &msg, K_MSEC(4))) {
 #else 			
-		if (k_msgq_get(&uart_msgq, &msg, K_SECONDS(2))) {
+		if (k_msgq_get(&uart_msgq, &msg, K_NO_WAIT)) {
 #endif 
 			/* Send stop to all */
-			log_uart(T_MOTHER_INFO, "Message Timeout");
-			drive_timestamp = k_uptime_get();
-			err = diffdrive_update(drive, TIMEOUT_CMD, drive_timestamp);
-			time_last_drive_update = k_uptime_get() - drive_timestamp;
+			if ( k_uptime_get() - curr_cmd_stamp > 400) {
+				log_uart(T_MOTHER_INFO, "Message Timeout");
+				drive_timestamp = k_uptime_get();
+				err = diffdrive_update(drive, TIMEOUT_CMD, drive_timestamp);
+				time_last_drive_update = k_uptime_get() - drive_timestamp;
 
-			if (err) {
-				log_uart(T_MOTHER_ERROR, "Diffdrive Update Failure");
-			}
+				if (err) {
+					log_uart(T_MOTHER_ERROR, "Diffdrive Update Failure");
+				}
 
-			for (size_t i = 2; i < 6; i++) {
-				pwm_motor_write(&(motor[i]), PWM_MOTOR_STOP);
-			}
-			for (size_t i = 8; i < ARRAY_SIZE(motor); i++) {
-				pwm_motor_write(&(motor[i]), PWM_MOTOR_STOP);
-			}
+				for (size_t i = 2; i < 6; i++) {
+					pwm_motor_write(&(motor[i]), PWM_MOTOR_STOP);
+				}
+				for (size_t i = 8; i < ARRAY_SIZE(motor); i++) {
+					pwm_motor_write(&(motor[i]), PWM_MOTOR_STOP);
+				}
 
+				curr_cmd_stamp = k_uptime_get();
+			}
 			continue;
 		}
-
 		if (!valid_crc(&msg)) {
 			log_uart(T_MOTHER_ERROR, "Invalid CRC");
 			continue;
