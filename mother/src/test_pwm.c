@@ -2,6 +2,7 @@
  * Test file for checking pwm pins
  */
 
+#include "zephyr/sys/printk.h"
 #include <zephyr/device.h>
 #include <zephyr/devicetree.h>
 #include <zephyr/drivers/gpio.h>
@@ -20,7 +21,7 @@ static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(DT_ALIAS(led0), gpios);
 
 int main()
 {
-	printk("Testing all PWM pins\n\n");
+	printk("Test: PWM\n\n");
 
 	if (!gpio_is_ready_dt(&led)){
 		printk("Error: Led not ready\n");
@@ -45,7 +46,7 @@ int main()
 		return 0;
 	}
 
-	printk("Successfully initialized\n");
+	printk("Successfully initialized all pins\n");
 	
 	while (1) {
 		for(size_t i = 0U; i < ARRAY_SIZE(roboclaw); i++) {
@@ -55,7 +56,8 @@ int main()
 					printk("Unable to write pwm pulse to PWM Motor : %d", i);
 					return 0;
 				}
-				k_sleep(K_MSEC(1000));
+				printk("Writing [%u] to PWM %d\n", pulse, i);
+				k_sleep(K_MSEC(300));
 			}
 			for(uint32_t pulse = 1900000; pulse > 1100000; pulse -= 100000)
 			{
@@ -63,7 +65,8 @@ int main()
 					printk("Unable to write pwm pulse to PWM Motor : %d", i);
 					return 0;
 				}
-				k_sleep(K_MSEC(1000));
+				printk("Writing [%u] to PWM %d\n", pulse, i);
+				k_sleep(K_MSEC(300));
 			}
 			// if(pwm_motor_write(&roboclaw[i], 1100000)) {
 			// 		printk("Unable to write pwm pulse to PWM Motor : %d", i);
