@@ -52,10 +52,15 @@
 			max-pulse = <PWM_USEC(1900)>;
 		};
 		servo_3: pwm_11 {
-			pwms  = <&pwm8 3 PWM_MSEC(20) (PWM_POLARITY_NORMAL)>;
+			pwms  = <&pwm12 2 PWM_MSEC(20) (PWM_POLARITY_NORMAL)>;
 			min-pulse = <PWM_USEC(1100)>;
 			max-pulse = <PWM_USEC(1900)>;
 		};
+	};
+
+	chosen {
+		zephyr,console = &usart1;
+		zephyr,shell-uart = &usart1;
 	};
 
 	aliases {
@@ -67,6 +72,12 @@
 	};
 };
 
+&usart1 {
+	pinctrl-0 = <&usart1_tx_pa9 &usart1_rx_pa10>;
+	pinctrl-names = "default";
+	current-speed = <921600>;
+	status = "okay";
+};
 
 &usart2 {
 	pinctrl-0 = <&usart2_tx_pd5 &usart2_rx_pd6>;
@@ -103,7 +114,18 @@
 
 	pwm8: pwm {
 		status = "okay";
-		pinctrl-0 = <&tim8_ch1_pc6 &tim8_ch2_pc7 &tim8_ch3_pc8 &tim8_ch4_pc9>;
+		pinctrl-0 = <&tim8_ch1_pc6 &tim8_ch2_pc7>;
+		pinctrl-names = "default";
+	};
+};
+
+&timers12 {
+	status = "okay";
+	st,prescaler = <5599>;
+
+	pwm12: pwm {
+		status = "okay";
+		pinctrl-0 = <&tim12_ch2_pb15>;
 		pinctrl-names = "default";
 	};
 };
