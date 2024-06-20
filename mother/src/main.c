@@ -358,10 +358,9 @@ int main()
 #ifdef CONFIG_TEST_MODE
 		if (k_msgq_get(&uart_msgq, &msg, K_MSEC(4))) {
 #else
-		if (k_msgq_get(&uart_msgq, &msg, K_NO_WAIT)) {
+		if (k_msgq_get(&uart_msgq, &msg, K_MSEC(1000))) {
 #endif
 			/* Send stop to all */
-			if (k_uptime_get() - curr_cmd_stamp > 1000) {
 				log_uart(T_MOTHER_INFO, "Message Timeout");
 				drive_timestamp = k_uptime_get();
 				err = diffdrive_update(drive, TIMEOUT_CMD, drive_timestamp);
@@ -378,8 +377,6 @@ int main()
 					pwm_motor_write(&(motor[i]), PWM_MOTOR_STOP);
 				}
 
-				curr_cmd_stamp = k_uptime_get();
-			}
 			continue;
 		}
 		if (!valid_crc(&msg)) {
