@@ -36,8 +36,8 @@ const struct device *const encoder_fr = DEVICE_DT_GET(DT_ALIAS(en_fr));
 const struct device *const encoder_fl = DEVICE_DT_GET(DT_ALIAS(en_fl));
 
 /* DT spec for imus */
-const struct device *const lj_imu = DEVICE_DT_GET(DT_ALIAS(imu_lower_joint)); 
-const struct device *const uj_imu = DEVICE_DT_GET(DT_ALIAS(imu_upper_joint)); 
+const struct device *const lj_imu = DEVICE_DT_GET(DT_ALIAS(imu_lower_joint));
+const struct device *const uj_imu = DEVICE_DT_GET(DT_ALIAS(imu_upper_joint));
 /* DT spec for LED */
 static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(DT_ALIAS(led0), gpios);
 
@@ -187,19 +187,15 @@ int velocity_callback(const float *velocity_buffer, int buffer_len, int wheels_p
 	}
 
 	const int i = 0;
-	if (pwm_motor_write(&(motor[i]),
-			    velocity_pwm_interpolation(*(velocity_buffer + i), vel_range,
-						       pwm_range))) {
-		log_uart(T_MOTHER_ERROR, "Drive: Unable to write pwm pulse to Left : %d",
-			 i);
+	if (pwm_motor_write(&(motor[i]), velocity_pwm_interpolation(*(velocity_buffer + i),
+								    vel_range, pwm_range))) {
+		log_uart(T_MOTHER_ERROR, "Drive: Unable to write pwm pulse to Left : %d", i);
 		return 1;
 	}
-	if (pwm_motor_write(
-		    &(motor[i + 1]),
-		    velocity_pwm_interpolation(*(velocity_buffer + wheels_per_side + i),
-					       vel_range, pwm_range))) {
-		log_uart(T_MOTHER_ERROR, "Drive: Unable to write pwm pulse to Right : %d",
-			 i);
+	if (pwm_motor_write(&(motor[i + 1]),
+			    velocity_pwm_interpolation(*(velocity_buffer + wheels_per_side + i),
+						       vel_range, pwm_range))) {
+		log_uart(T_MOTHER_ERROR, "Drive: Unable to write pwm pulse to Right : %d", i);
 		return 1;
 	}
 	return 0;
@@ -209,7 +205,7 @@ int main()
 {
 	log_uart(T_MOTHER_INFO, "Mother: v%s", APP_VERSION_STRING);
 
-	int err;	
+	int err;
 
 	struct DiffDriveConfig drive_config = {
 		.wheel_separation = 0.77f,
@@ -222,30 +218,25 @@ int main()
 		.update_type = POSITION_FEEDBACK,
 	};
 
-	struct ArmJointStatus upper_joint = {
-		.desired_angle = -45,
-		.pid.Kp = 2.5,
-		.pid.Ki = 0.25,
-		.pid.Kd = 2,
-		.pid.previous_error = 0,
-		.pid.derivative = 0,
-		.pid.integral = 0
-	};
-	struct ArmJointStatus lower_joint = {
-		.desired_angle = 40,
-		.pid.Kp = 1.8,
-		.pid.Ki = 0.15,
-		.pid.Kd = 0.4,
-		.pid.previous_error = 0,
-		.pid.derivative = 0,
-		.pid.integral = 0
-	};
+	struct ArmJointStatus upper_joint = {.desired_angle = -45,
+					     .pid.Kp = 2.5,
+					     .pid.Ki = 0.25,
+					     .pid.Kd = 2,
+					     .pid.previous_error = 0,
+					     .pid.derivative = 0,
+					     .pid.integral = 0};
+	struct ArmJointStatus lower_joint = {.desired_angle = 40,
+					     .pid.Kp = 1.8,
+					     .pid.Ki = 0.15,
+					     .pid.Kd = 0.4,
+					     .pid.previous_error = 0,
+					     .pid.derivative = 0,
+					     .pid.integral = 0};
 
 	uint64_t time_last_drive_update = 0;
 	uint64_t drive_timestamp = 0;
-	uint64_t curr_status_stamp = 0;	
-	uint64_t curr_cmd_stamp = 0; 
-
+	uint64_t curr_status_stamp = 0;
+	uint64_t curr_cmd_stamp = 0;
 
 	/* Device ready checks */
 
@@ -266,13 +257,13 @@ int main()
 		log_uart(T_MOTHER_ERROR, "Encoder Front Right not ready");
 	}
 
-	if (!device_is_ready(lj_imu)) {
-		log_uart(T_MOTHER_ERROR, "IMU Lower Joint not ready");
-	}
+	// if (!device_is_ready(lj_imu)) {
+	// 	log_uart(T_MOTHER_ERROR, "IMU Lower Joint not ready");
+	// }
 
-	if (!device_is_ready(uj_imu)) {
-		log_uart(T_MOTHER_ERROR, "IMU Upper Joint not ready");
-	}
+	// if (!device_is_ready(uj_imu)) {
+	// 	log_uart(T_MOTHER_ERROR, "IMU Upper Joint not ready");
+	// }
 
 	if (!gpio_is_ready_dt(&led)) {
 		log_uart(T_MOTHER_ERROR, "Led not ready");
@@ -294,26 +285,26 @@ int main()
 	}
 	uart_irq_rx_enable(uart_dev);
 
-	for(size_t i = 0U; i < ARRAY_SIZE(motor); i++) {
-		if(pwm_motor_write(&(motor[i]),1500000)) {
+	for (size_t i = 0U; i < ARRAY_SIZE(motor); i++) {
+		if (pwm_motor_write(&(motor[i]), 1500000)) {
 			printk("Unable to write pwm pulse to PWM Motor : %d", i);
 		}
 	}
 
-	err = calibrate_imu(lj_imu, &lower_joint);
-	if (err < 0) {
-		log_uart(T_MOTHER_ERROR, "Lower Joint IMU calibration failed");
-	}
-	
-	err = calibrate_imu(uj_imu, &upper_joint);
-	if(err < 0) {
-		log_uart(T_MOTHER_ERROR, "Upper Joint IMU calibration failed");
-	}
+	// err = calibrate_imu(lj_imu, &lower_joint);
+	// if (err < 0) {
+	// 	log_uart(T_MOTHER_ERROR, "Lower Joint IMU calibration failed");
+	// }
+
+	// err = calibrate_imu(uj_imu, &upper_joint);
+	// if(err < 0) {
+	// 	log_uart(T_MOTHER_ERROR, "Upper Joint IMU calibration failed");
+	// }
 
 	if (gpio_pin_configure_dt(&led, GPIO_OUTPUT_ACTIVE) < 0) {
 		log_uart(T_MOTHER_ERROR, "Led not configured");
 	}
-	
+
 	struct DiffDrive *drive =
 		diffdrive_init(&drive_config, feedback_callback, velocity_callback);
 
@@ -321,30 +312,35 @@ int main()
 
 	while (true) {
 
-		err = update_pid(lj_imu, &lower_joint);		
-		if ( (lower_joint.angle < 9 && lower_joint.pid.pid_change < 0) || (lower_joint.angle> 45 && lower_joint.pid.pid_change > 0)) {
-			pwm_motor_write(&(motor[6]),PWM_MOTOR_STOP);
-		}
-		else if (err == 0) {
-			pwm_motor_write(&(motor[6]), pid_pwm_interp(lower_joint.pid.pid_change, angle_range, pid_pwm_range));
-		}
-		
-		
-		err += update_pid(uj_imu, &upper_joint);
-		float transform_upper_lower = 180 - lower_joint.angle + upper_joint.angle;
-		if ((transform_upper_lower< 85 && upper_joint.pid.pid_change < 0) || (transform_upper_lower > 105 && upper_joint.pid.pid_change > 0)) {
-			pwm_motor_write(&(motor[7]),PWM_MOTOR_STOP);
-		}
-		else if (err == 0) {
-			pwm_motor_write(&(motor[7]), pid_pwm_interp(upper_joint.pid.pid_change, angle_range, pid_pwm_range));
-			// log_uart(T_MOTHER_INFO, "PWM [%u] to motor 7", pid_pwm_interp(upper_joint.pid.pid_change, angle_range, pid_pwm_range));
-		}
+		// err = update_pid(lj_imu, &lower_joint);
+		// if ( (lower_joint.angle < 9 && lower_joint.pid.pid_change < 0) ||
+		// (lower_joint.angle> 45 && lower_joint.pid.pid_change > 0)) {
+		// 	pwm_motor_write(&(motor[6]),PWM_MOTOR_STOP);
+		// }
+		// else if (err == 0) {
+		// 	pwm_motor_write(&(motor[6]), pid_pwm_interp(lower_joint.pid.pid_change,
+		// angle_range, pid_pwm_range));
+		// }
+
+		// err += update_pid(uj_imu, &upper_joint);
+		// float transform_upper_lower = 180 - lower_joint.angle + upper_joint.angle;
+		// if ((transform_upper_lower< 85 && upper_joint.pid.pid_change < 0) ||
+		// (transform_upper_lower > 105 && upper_joint.pid.pid_change > 0)) {
+		// 	pwm_motor_write(&(motor[7]),PWM_MOTOR_STOP);
+		// }
+		// else if (err == 0) {
+		// 	pwm_motor_write(&(motor[7]), pid_pwm_interp(upper_joint.pid.pid_change,
+		// angle_range, pid_pwm_range));
+		// 	// log_uart(T_MOTHER_INFO, "PWM [%u] to motor 7",
+		// pid_pwm_interp(upper_joint.pid.pid_change, angle_range, pid_pwm_range));
+		// }
 		/* Send status every 1 ms*/
-		if (k_uptime_get() - curr_status_stamp > 1000) {
+		if (k_uptime_get() - curr_status_stamp > 10) {
 			struct DiffDriveStatus ds = diffdrive_status(drive);
-			struct mother_status_msg s_msg = {.odom = ds,
-							  .arm_joint_status = { 0.0f, lower_joint.angle, upper_joint.angle},
-							  .timestamp = k_uptime_get()};
+			struct mother_status_msg s_msg = {
+				.odom = ds,
+				.arm_joint_status = {0.0f, lower_joint.angle, upper_joint.angle},
+				.timestamp = k_uptime_get()};
 			struct mother_msg status_msg = {.type = T_MOTHER_STATUS, .status = s_msg};
 			uint32_t crc = crc32_ieee((uint8_t *)&status_msg,
 						  sizeof(struct mother_msg) - sizeof(uint32_t));
@@ -352,8 +348,8 @@ int main()
 
 			serialize(tx_buf, (uint8_t *)&status_msg, sizeof(struct mother_msg));
 			send_to_uart(tx_buf, UART_MSG_SIZE);
-			
-			if(err < 0) {
+
+			if (err < 0) {
 				log_uart(T_MOTHER_ERROR, "Sample fetch/get failed in IMU");
 			}
 
@@ -361,11 +357,11 @@ int main()
 		}
 #ifdef CONFIG_TEST_MODE
 		if (k_msgq_get(&uart_msgq, &msg, K_MSEC(4))) {
-#else 			
+#else
 		if (k_msgq_get(&uart_msgq, &msg, K_NO_WAIT)) {
-#endif 
+#endif
 			/* Send stop to all */
-			if ( k_uptime_get() - curr_cmd_stamp > 400) {
+			if (k_uptime_get() - curr_cmd_stamp > 1000) {
 				log_uart(T_MOTHER_INFO, "Message Timeout");
 				drive_timestamp = k_uptime_get();
 				err = diffdrive_update(drive, TIMEOUT_CMD, drive_timestamp);
