@@ -15,7 +15,7 @@
 	{.dev_spec = PWM_DT_SPEC_GET(pwm_dev_id),                                                  \
 	 .min_pulse = DT_PROP(pwm_dev_id, min_pulse),                                              \
 	 .max_pulse = DT_PROP(pwm_dev_id, max_pulse)},
-struct pwm_motor roboclaw[11] = {DT_FOREACH_CHILD(DT_PATH(pwmmotors), PWM_MOTOR_SETUP)};
+struct pwm_motor roboclaw[13] = {DT_FOREACH_CHILD(DT_PATH(pwmmotors), PWM_MOTOR_SETUP)};
 
 static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(DT_ALIAS(led0), gpios);
 
