@@ -169,10 +169,10 @@ if __name__ == "__main__":
     # data.status.timestamp = 0
 
     data.cmd.drive_cmd.linear_x = 0.0
-    data.cmd.drive_cmd.angular_z = 1.0
+    data.cmd.drive_cmd.angular_z = 0.0
 
     data.cmd.arm_joint[0] = 0.0
-    data.cmd.arm_joint[1] = 0.0
+    data.cmd.arm_joint[1] = 10.0
     data.cmd.arm_joint[2] = 0.0 
 
     data.cmd.adaptive_sus_cmd[0] = 0
@@ -184,14 +184,15 @@ if __name__ == "__main__":
     
     #data.info = "Sending drive command"
     try:
-        ser = serial.Serial(port, 115200, timeout=5)
+        ser = serial.Serial(port, 921600, timeout=5)
         print(f"Opened serial port {port}")
        
+        write_to_serial(ser, data)
         while True:
 
-            write_to_serial(ser, data)
+            # write_to_serial(ser, data)
             read_from_serial(ser)
-            time.sleep(1);
+            # time.sleep(0.4);
         
     except serial.SerialException as e:
         print(f"Error opening or reading from serial port: {e}")
