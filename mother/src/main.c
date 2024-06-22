@@ -29,7 +29,7 @@ K_MSGQ_DEFINE(uart_msgq, sizeof(struct mother_msg), 10, 1);
 static const struct device *const uart_dev = DEVICE_DT_GET(DT_ALIAS(mother_uart));
 
 /* DT spec for pwm motors */
-struct pwm_motor motor[11] = {DT_FOREACH_CHILD(DT_PATH(pwmmotors), PWM_MOTOR_SETUP)};
+struct pwm_motor motor[13] = {DT_FOREACH_CHILD(DT_PATH(pwmmotors), PWM_MOTOR_SETUP)};
 
 /* DT spec for encoders */
 const struct device *const encoder_fr = DEVICE_DT_GET(DT_ALIAS(en_fr));
@@ -236,7 +236,6 @@ int main()
 	uint64_t time_last_drive_update = 0;
 	uint64_t drive_timestamp = 0;
 	uint64_t curr_status_stamp = 0;
-	uint64_t curr_cmd_stamp = 0;
 
 	/* Device ready checks */
 
