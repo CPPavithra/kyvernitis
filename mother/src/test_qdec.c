@@ -96,6 +96,7 @@ int get_ticks(int64_t *ticks, const struct device *const dev, struct sensor_valu
 	}
 	
 	*ticks = val->val1 * pow(10,6) + val->val2;
+	return 0;
 }
 
 int main(void)
