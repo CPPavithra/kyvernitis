@@ -133,6 +133,19 @@ int main(void)
 	}
 	qenc_emulate_init();
 	int64_t ticks;
+	uint64_t timestamp = 0;
+	
+	int pulse = 1900000;
+	if(pwm_motor_write(&roboclaw[0], pulse)) {
+		printk("Unable to write pwm pulse to PWM Motor : %d", 0);
+		return 0;
+	}
+
+	if(pwm_motor_write(&roboclaw[1], pulse)) {
+		printk("Unable to write pwm pulse to PWM Motor : %d", 1);
+		return 0;
+	}
+
 	while (true) {
 		get_ticks(&ticks, en_fr, &val);	
 		printk("Front-Right: %lld \n", ticks);
@@ -140,16 +153,20 @@ int main(void)
 		printk("Front-Left: %lld \n", ticks);
 
 
-		int pulse = 1900000;
-		if(pwm_motor_write(&roboclaw[0], pulse)) {
-			printk("Unable to write pwm pulse to PWM Motor : %d", 0);
-			return 0;
+
+		if(k_uptime_get() - timestamp > 12000) {
+			if(pwm_motor_write(&roboclaw[0], 1500000)) {
+				printk("Unable to write pwm pulse to PWM Motor : %d", 0);
+				return 0;
+			}
+
+			if(pwm_motor_write(&roboclaw[1], 1500000)) {
+				printk("Unable to write pwm pulse to PWM Motor : %d", 1);
+				return 0;
+			}
+			timestamp = k_uptime_get();
 		}
 
-		if(pwm_motor_write(&roboclaw[1], pulse)) {
-			printk("Unable to write pwm pulse to PWM Motor : %d", 1);
-			return 0;
-		}
 		gpio_pin_toggle_dt(&led_1);
 		k_msleep(1000);
 	}
