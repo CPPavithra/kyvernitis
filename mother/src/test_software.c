@@ -3,14 +3,15 @@
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
-
+int v = 0;
 int feedback_callback(float *feedback_buffer, int buffer_len, int wheels_per_side)
 {
   if (buffer_len < wheels_per_side*2) return 1;
 	for (int i = 0; i < wheels_per_side; i++) {
-	  feedback_buffer[i] = 5;
-	  feedback_buffer[wheels_per_side + i] = 5;
+	  feedback_buffer[i] = v*100;
+	  feedback_buffer[wheels_per_side + i] = v*100;
 	}
+	v++;
 	return 0;
 }
 int velocity_callback(const float *velocity_buffer, int buffer_len, int wheels_per_side)
@@ -38,7 +39,7 @@ int main(void)
 	for (int i = 0; i < 10; i++) {
 	  struct DiffDriveTwist cmd = {.linear_x = i, .angular_z = 0};
 	  diffdrive_update(drive, cmd, 2);
-	  k_msleep(3);
+	  k_msleep(300);
 	  struct DiffDriveStatus status = diffdrive_status(drive);
 	  printf("Position: %.2f, %.2f\n", status.x, status.y);
 	}
