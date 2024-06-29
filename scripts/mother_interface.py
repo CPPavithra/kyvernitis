@@ -1,8 +1,10 @@
+import ctypes
 import os
 import sys
-import ctypes
-import serial
 import time
+
+import argparse
+import serial
 
 
 # Define the DiffDriveStatus struct
@@ -147,11 +149,13 @@ def calculate_crc(data):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("Usage: python script.py <serial_port>")
-        sys.exit(1)
+    parser = argparse.ArgumentParser(description="Mother Interface Testing Script")
+    parser.add_argument('serial_port', type=str, help='Serial port')
+    parser.add_argument('-s', '--linear-speed', type=float, help='Linear speed value', default=0.0)
+    parser.add_argument('-a', '--angular-speed', type=float, help='Angular speed value', default=0.0)
+    args = parser.parse_args()
 
-    port = sys.argv[1]
+    port = args.serial_port
 
     
     data = mother_msg()
@@ -168,8 +172,8 @@ if __name__ == "__main__":
     # data.status.arm_joint_status[2] = 2.0
     # data.status.timestamp = 0
 
-    data.cmd.drive_cmd.linear_x = 0.0
-    data.cmd.drive_cmd.angular_z = 0.0
+    data.cmd.drive_cmd.linear_x = args.linear_speed
+    data.cmd.drive_cmd.angular_z = args.angular_speed
 
     data.cmd.arm_joint[0] = 0.0
     data.cmd.arm_joint[1] = 10.0
@@ -189,14 +193,11 @@ if __name__ == "__main__":
        
         write_to_serial(ser, data)
         while True:
-
-            # write_to_serial(ser, data)
+            write_to_serial(ser, data)
             read_from_serial(ser)
-            # time.sleep(0.4);
         
     except serial.SerialException as e:
         print(f"Error opening or reading from serial port: {e}")
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
         ser.close()
-
