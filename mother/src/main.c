@@ -2,6 +2,7 @@
  * Source file for R25
  */
 
+#include <zephyr/sys/reboot.h>
 #include <zephyr/kernel.h>
 #include <zephyr/device.h>
 #include <zephyr/devicetree.h>
@@ -52,6 +53,7 @@ struct DiffDriveTwist TIMEOUT_CMD = {
 /* Velocity and PWM ranges */
 float vel_range[] = {-10, 10};
 uint32_t pwm_range[] = {1120000, 1880000};
+float la_speed_range[] = {0.0, 255.0};
 uint32_t pid_pwm_range[] = {1300000, 1700000};
 float angle_range[] = {-270, 270};
 
@@ -393,10 +395,20 @@ int main()
 				log_uart(T_MOTHER_ERROR, "Diffdrive Update Failue");
 			}
 			break;
+		
 		case T_MOTHER_CMD_ARM:
 			lower_joint.desired_angle = msg.cmd.arm_joint[1];
 			upper_joint.desired_angle = msg.cmd.arm_joint[2];
+			break;
+		
+		case T_MOTHER_CMD_LA:
+			for (int i = 0; i < 2; i++) {
+				pwm_motor_write(&(motor[4 + i]), velocity_pwm_interpolation((float)msg.cmd.adaptive_sus_cmd[i], la_speed_range, pwm_range));
+			}
+			break;
 
+		case T_MOTHER_RESET:
+			sys_reboot(SYS_REBOOT_WARM);
 			break;
 		}
 

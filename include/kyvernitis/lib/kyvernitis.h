@@ -31,7 +31,8 @@ enum MotherMsgType {
 	T_MOTHER_CMD_LA,
 	T_MOTHER_STATUS,
 	T_MOTHER_ERROR,
-	T_MOTHER_INFO
+	T_MOTHER_INFO,
+	T_MOTHER_RESET,
 };
 
 struct pwm_motor {
