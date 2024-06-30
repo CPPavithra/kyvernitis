@@ -139,9 +139,14 @@ def write_to_serial(ser, data):
 
     # Write the encoded data to the serial port
     ser.write(bytes(output_buffer))
-    print(
-        f"[CMD]:  {data.cmd.drive_cmd.linear_x} | {data.cmd.drive_cmd.angular_z} to the serial port"
-    )
+    if args.la_speed[0] != 127 or args.la_speed[1] != 127:
+        print(
+            f"[CMD]: Linear Actuator | {data.cmd.adaptive_sus_cmd[0]} | {data.cmd.adaptive_sus_cmd[1]}"
+        )
+    else:
+        print(
+            f"[CMD]: Drive | {data.cmd.drive_cmd.linear_x} | {data.cmd.drive_cmd.angular_z}"
+        )
 
 
 def calculate_crc(data):
@@ -163,6 +168,14 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "-a", "--angular-speed", type=float, help="Angular speed value", default=0.0
+    )
+    parser.add_argument(
+        "-l",
+        "--la-speed",
+        nargs=2,
+        type=int,
+        default=[127, 127],
+        help="Linear actuator speed values",
     )
     parser.add_argument(
         "-r", "--reboot", action="store_true", help="Reboot the microcontroller"
@@ -189,11 +202,10 @@ if __name__ == "__main__":
     data.cmd.drive_cmd.angular_z = args.angular_speed
 
     data.cmd.arm_joint[0] = 0.0
-    data.cmd.arm_joint[1] = 10.0
+    data.cmd.arm_joint[1] = 0.0
     data.cmd.arm_joint[2] = 0.0
-
-    data.cmd.adaptive_sus_cmd[0] = 0
-    data.cmd.adaptive_sus_cmd[1] = 0
+    data.cmd.adaptive_sus_cmd[0] = args.la_speed[0]
+    data.cmd.adaptive_sus_cmd[1] = args.la_speed[1]
     data.cmd.adaptive_sus_cmd[2] = 0
     data.cmd.adaptive_sus_cmd[3] = 0
 
@@ -201,14 +213,17 @@ if __name__ == "__main__":
         ser = serial.Serial(port, 921600, timeout=5)
         print(f"Opened serial port {port}")
 
-        
         if args.reboot:
             print("Rebooting microcontroller...")
             data.type = 6
             data.crc = calculate_crc(data)
             write_to_serial(ser, data)
 
-        data.type = 0
+        if args.la_speed[0] != 127 or args.la_speed[1] != 127:
+            data.type = 2
+        else:
+            data.type = 0
+
         data.crc = calculate_crc(data)
 
         while True:
