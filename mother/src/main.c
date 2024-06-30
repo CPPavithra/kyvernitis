@@ -53,7 +53,7 @@ struct DiffDriveTwist TIMEOUT_CMD = {
 /* Velocity and PWM ranges */
 float vel_range[] = {-10, 10};
 uint32_t pwm_range[] = {1120000, 1880000};
-float la_speed_range[] = {0.0, 255.0};
+float la_speed_range[] = {-127.0, 127.0};
 uint32_t pid_pwm_range[] = {1300000, 1700000};
 float angle_range[] = {-270, 270};
 
