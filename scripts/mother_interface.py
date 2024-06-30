@@ -28,7 +28,7 @@ class mother_cmd_msg(ctypes.Structure):
     _fields_ = [
         ("drive_cmd", DiffDriveTwist),
         ("arm_joint", ctypes.c_float * 3),
-        ("adaptive_sus_cmd", ctypes.c_uint8 * 4),
+        ("adaptive_sus_cmd", ctypes.c_int8 * 4),
     ]
 
 
@@ -139,7 +139,7 @@ def write_to_serial(ser, data):
 
     # Write the encoded data to the serial port
     ser.write(bytes(output_buffer))
-    if args.la_speed[0] != 127 or args.la_speed[1] != 127:
+    if args.la_speed[0] != 0 or args.la_speed[1] != 0:
         print(
             f"[CMD]: Linear Actuator | {data.cmd.adaptive_sus_cmd[0]} | {data.cmd.adaptive_sus_cmd[1]}"
         )
@@ -174,7 +174,7 @@ if __name__ == "__main__":
         "--la-speed",
         nargs=2,
         type=int,
-        default=[127, 127],
+        default=[0, 0],
         help="Linear actuator speed values",
     )
     parser.add_argument(
@@ -219,7 +219,7 @@ if __name__ == "__main__":
             data.crc = calculate_crc(data)
             write_to_serial(ser, data)
 
-        if args.la_speed[0] != 127 or args.la_speed[1] != 127:
+        if args.la_speed[0] != 0 or args.la_speed[1] != 0:
             data.type = 2
         else:
             data.type = 0

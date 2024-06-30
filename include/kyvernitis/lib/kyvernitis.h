@@ -54,7 +54,7 @@ struct dc_motor {
 struct mother_cmd_msg {
 	struct DiffDriveTwist drive_cmd;
 	float arm_joint[3];
-	uint8_t adaptive_sus_cmd[4];
+	int8_t adaptive_sus_cmd[4];
 };
 
 struct mother_status_msg {
