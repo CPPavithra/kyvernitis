@@ -8,6 +8,7 @@
 #include <zephyr/device.h>
 #include <zephyr/drivers/sensor.h>
 #include <zephyr/sys/printk.h>
+#include <math.h>
 #include <stdio.h>
 
 int main(void)
@@ -33,12 +34,13 @@ int main(void)
 		ret = sensor_channel_get(dev, SENSOR_CHAN_MAGN_X, &value_x);
 		ret = sensor_channel_get(dev, SENSOR_CHAN_MAGN_Y, &value_y);
 		ret = sensor_channel_get(dev, SENSOR_CHAN_MAGN_Z, &value_z);
-		printf("( x y z ) = ( %f  %f  %f )\n",
+		printf("( x y z ) = ( %f  %f  %f ), angle = %f\n",
 		       sensor_value_to_double(&value_x),
 		       sensor_value_to_double(&value_y),
-		       sensor_value_to_double(&value_z));
+		       sensor_value_to_double(&value_z),
+			atan2(sensor_value_to_double(&value_y), sensor_value_to_double(&value_x))*180/3.1415926f);
 
-		k_sleep(K_MSEC(500));
+		k_sleep(K_MSEC(50));
 	}
 	return 0;
 }
